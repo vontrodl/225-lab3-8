@@ -14,9 +14,8 @@ spec:
       labels:
         app: mongo-express
     spec:
-      # If you eventually need a private registry, uncomment and set your secret name:
-      # imagePullSecrets:
-      #   - name: roseaw-dockerhub
+       imagePullSecrets:
+         - name: docker-creds
       containers:
         - name: mongo-express
           image: mongo-express:latest
