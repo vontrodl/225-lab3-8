@@ -36,7 +36,7 @@ spec:
               name: mongodb-configmap
               key: database_url
       imagePullSecrets:
-      - name: roseaw-dockerhub  # Add this to your kubernetes cluster
+      - name: docker-creds  # Add this to your kubernetes cluster
 ---
 apiVersion: v1
 kind: Service
