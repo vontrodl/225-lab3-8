@@ -39,6 +39,12 @@ spec:
         # -----------------------------
         # These variables configure Mongo Express to connect to MongoDB
         env:
+        
+        - name: ME_CONFIG_BASICAUTH_USERNAME
+          value: admin
+        - name: ME_CONFIG_BASICAUTH_PASSWORD
+          value: password
+
         - name: ME_CONFIG_MONGODB_ADMINUSERNAME   # MongoDB admin username variable
           valueFrom:
             secretKeyRef:                        # Retrieve from Kubernetes Secret
