@@ -1,52 +1,89 @@
-apiVersion: apps/v1
-kind: Deployment
+# ----------------------------------------------------
+# Mongo Express Deployment and Service
+# ----------------------------------------------------
+# This file defines both a Deployment and a Service.
+# The Deployment manages the Mongo Express pod lifecycle.
+# The Service exposes Mongo Express externally (via LoadBalancer, NodePort, or ClusterIP).
+# Mongo Express provides a web UI for interacting with MongoDB.
+
+# ====================================================
+# DEPLOYMENT SECTION
+# ====================================================
+apiVersion: apps/v1              # API version for Kubernetes Deployments
+kind: Deployment                 # Resource type: Deployment (used for stateless apps)
 metadata:
-  name: mongo-express
+  name: mongo-express            # Name of the Deployment
   labels:
-    app: mongo-express
+    app: mongo-express           # Label to identify and group resources
+
 spec:
-  replicas: 1
+  replicas: 1                    # Number of pod replicas to run (scales horizontally)
   selector:
     matchLabels:
-      app: mongo-express
-  template:
+      app: mongo-express         # Ensures Deployment manages only pods with this label
+
+  template:                      # Pod template that defines the desired pod configuration
     metadata:
       labels:
-        app: mongo-express
+        app: mongo-express       # Label assigned to the pods; must match selector above
+
     spec:
       containers:
-      - name: mongo-express
-        image: mongo-express
+      - name: mongo-express      # Name of the container (arbitrary but descriptive)
+        image: mongo-express     # Docker image from Docker Hub (no tag = latest)
         ports:
-        - containerPort: 8081
+        - containerPort: 8081    # The port Mongo Express listens on inside the container
+
+        # -----------------------------
+        # Environment Variables Section
+        # -----------------------------
+        # These variables configure Mongo Express to connect to MongoDB
         env:
-        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME   # MongoDB admin username variable
           valueFrom:
-            secretKeyRef:
-              name: mongo-secret
-              key: mongo-root-username
-        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+            secretKeyRef:                        # Retrieve from Kubernetes Secret
+              name: mongo-secret                  # Secret resource name
+              key: mongo-root-username            # Key within the secret
+
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD   # MongoDB admin password variable
           valueFrom:
-            secretKeyRef:
+            secretKeyRef:                        # Retrieve from the same Secret
               name: mongo-secret
               key: mongo-root-password
-        - name: ME_CONFIG_MONGODB_SERVER
+
+        - name: ME_CONFIG_MONGODB_SERVER          # MongoDB server connection info
           valueFrom:
-            configMapKeyRef:
-              name: mongo-configmap
-              key: database_url
+            configMapKeyRef:                     # Retrieve from a ConfigMap
+              name: mongo-configmap               # ConfigMap resource name
+              key: database_url                   # Key within the ConfigMap (must exist)
+
+      # -----------------------------
+      # Image Pull Secret
+      # -----------------------------
+      # Required if you are pulling images from a private Docker registry.
+      # The secret 'docker-creds' must be created with: 
+      # kubectl create secret docker-registry docker-creds --docker-username=<user> --docker-password=<pass> --docker-email=<email>
       imagePullSecrets:
-      - name: docker-creds  # Add this to your kubernetes cluster
+      - name: docker-creds
+
 ---
+# ====================================================
+# SERVICE SECTION
+# ====================================================
+# A Service exposes your Deployment to the network.
+# Depending on your cluster, you may choose:
+#   - ClusterIP: Internal only (default)
+#   - NodePort: Exposes via node IP:port
+#   - LoadBalancer: Exposes via external IP (for cloud or MetalLB setups)
 apiVersion: v1
 kind: Service
 metadata:
-  name: mongo-express-service
+  name: mongo-express-service    # Name of the Service
 spec:
-  type: 
+  type: LoadBalancer             # Expose externally (can also be NodePort or ClusterIP)
   ports:
-  - protocol: TCP
-    port: 80
-    targetPort: 8081
+  - protocol: TCP                # Communication protocol
+    port: 80                     # Port accessible externally
+    targetPort: 8081             # Container port to forward traffic to
   selector:
-    app: mongo-express
+    app: mongo-express           # Match pods with this label (from Deployment)
