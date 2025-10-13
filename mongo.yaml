@@ -31,7 +31,7 @@ spec:
               name: mongodb-secret
               key: mongo-root-password
       imagePullSecrets:
-      - name: roseaw-docker
+      - name: docker-creds
       # Secret to use for pulling Docker images from a private registry.
 ---
 apiVersion: v1  # API version for service resources.
