@@ -1,5 +1,5 @@
 1) From Mac terminal issue the following command:
-    echo -n 'username' | base64
+    echo -n 'admin' | base64
    -or- for Windows, you can browse to base64encode.org and enter the text you want to encode.
    
 3) Use the resulting base64 encoded username in your mongo-secret.yaml
