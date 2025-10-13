@@ -16,4 +16,4 @@ data:
   # The key-value pairs below define configuration data
   # accessible to pods that reference this ConfigMap.
   # In this case, MongoDB will read the name of the database from here.
-  database-name: mymongodatabase   # The database name to be used by MongoDB or dependent services
+  database_url: mongo-service   # The internal service name of your MongoDB deployment
