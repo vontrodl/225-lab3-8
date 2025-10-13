@@ -81,6 +81,7 @@ metadata:
   name: mongo-express-service    # Name of the Service
 spec:
   type: LoadBalancer             # Expose externally (can also be NodePort or ClusterIP)
+  loadBalancerIP: 10.48.229.45
   ports:
   - protocol: TCP                # Communication protocol
     port: 80                     # Port accessible externally
