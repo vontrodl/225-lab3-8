@@ -15,4 +15,4 @@
 
    "kubectl create secret docker-registry docker-creds --docker-username=roseaw --docker-password=P@ssw0rd! --docker-email=roseaw@miamioh.edu"
 
-    "kubectl create secret generic mongodb-secret --from-literal=mongo-root-username=username --from-literal=mongo-root-password=password"
+    "kubectl create secret generic mongodb-secret --from-literal=mongo-root-username=admin --from-literal=mongo-root-password=password"
