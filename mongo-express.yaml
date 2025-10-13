@@ -14,7 +14,7 @@ spec:
       labels:
         app: mongo-express
     spec:
-       imagePullSecrets:
+      imagePullSecrets:
          - name: docker-creds
       containers:
         - name: mongo-express
