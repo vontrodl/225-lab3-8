@@ -1,6 +1,19 @@
-apiVersion: v1
-kind: ConfigMap
+# -----------------------------
+# Kubernetes ConfigMap Definition
+# -----------------------------
+# A ConfigMap is used to store non-sensitive configuration data
+# that your pods and containers can consume as environment variables
+# or mounted files. This allows you to separate configuration from
+# application code and update configurations without rebuilding images.
+
+apiVersion: v1             # API version used to create the ConfigMap
+kind: ConfigMap            # Specifies that this manifest defines a ConfigMap
+
 metadata:
-  name: mongo-configmap
+  name: mongo-configmap    # The name of the ConfigMap resource within the cluster
+
 data:
-  database-name: mydatabase
+  # The key-value pairs below define configuration data
+  # accessible to pods that reference this ConfigMap.
+  # In this case, MongoDB will read the name of the database from here.
+  database-name: mymongodatabase   # The database name to be used by MongoDB or dependent services
