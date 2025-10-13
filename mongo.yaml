@@ -1,46 +1,143 @@
-apiVersion: apps/v1  # The API version for deployment resources.
-kind: Deployment  # Indicates that this is a Deployment resource.
+# =====================================================
+# MongoDB StatefulSet + Services
+# - Headless Service "mongo" for stable DNS to pods
+# - ClusterIP Service "mongo-service" for app access
+# - StatefulSet "mongo" (1 replica) using Secret creds
+# =====================================================
+
+# -----------------------------------------------------
+# Headless Service (REQUIRED FOR STATEFULSET)
+# Provides stable network IDs for each pod (mongo-0, …)
+# Not used by mongo-express directly.
+# -----------------------------------------------------
+apiVersion: v1
+kind: Service
 metadata:
-  name: mongo-deployment  # The name of the deployment.
+  name: mongo                     # Must match StatefulSet.spec.serviceName
   labels:
-    app: mongo  # Labels that specify characteristics of the resource.
+    app: mongo
 spec:
-  replicas: 1  # The number of pods to run.
+  clusterIP: None                 # Headless service
+  selector:
+    app: mongo
+  ports:
+    - name: mongo
+      port: 27017                 # Service port (pod targetPort defaults to same)
+
+---
+# -----------------------------------------------------
+# Client-Facing Service
+# "mongo-express" will connect to this DNS name:
+#   mongo-service (port 27017)
+# -----------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-service             # <---- This is what mongo-express uses
+  labels:
+    app: mongo
+spec:
+  type: ClusterIP                 # Internal-only access inside the cluster
+  selector:
+    app: mongo
+  ports:
+    - name: mongo
+      protocol: TCP
+      port: 27017                 # Cluster-internal port
+      targetPort: 27017           # Container port
+
+---
+# -----------------------------------------------------
+# MongoDB StatefulSet
+# Uses credentials from Secret "mongo-secret":
+#   - mongo-root-username
+#   - mongo-root-password
+# NOTE: This example runs without persistent storage
+#       for simplicity. Add a volumeClaimTemplates
+#       block to persist data (PVC) if desired.
+# -----------------------------------------------------
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+  labels:
+    app: mongo
+spec:
+  serviceName: mongo              # Must match headless Service name above
+  replicas: 1                     # One MongoDB pod (mongo-0)
   selector:
     matchLabels:
-      app: mongo  # Selects the pods with the label 'app: mongodb'.
+      app: mongo
   template:
     metadata:
       labels:
-        app: mongo  # Labels applied to the pods created by this deployment.
+        app: mongo
     spec:
       containers:
-      - name: mongo  # Name of the container in the pod.
-        image: mongo  # Docker image to use for the container.
-        ports:
-        - containerPort: 27017  # The port the container exposes.
-        env:
-        - name: MONGO_INITDB_ROOT_USERNAME  # Environment variable for MongoDB root username.
-          valueFrom:
-            secretKeyRef:
-              name: mongo-secret  # Kubernetes secret storing MongoDB credentials.
-              key: mongo-root-username
-        - name: MONGO_INITDB_ROOT_PASSWORD  # Environment variable for MongoDB root password.
-          valueFrom: 
-            secretKeyRef:
-              name: mongo-secret
-              key: mongo-root-password
-      imagePullSecrets:
-      - name: docker-creds  # Secret to use for pulling Docker images from a private registry.
----
-apiVersion: v1  # API version for service resources.
-kind: Service  # Indicates that this is a Service resource.
-metadata:
-  name: mongo-service  # The name of the service.
-spec:
-  selector:
-    app: mongo  # This service routes traffic to pods with the label 'app: mongodb'.
-  ports:
-    - protocol: TCP
-      port: 27017  # The port that the service exposes.
-      targetPort: 27017  # The port on the pod to which the service sends traffic.
+        - name: mongo
+          image: mongo:6          # Explicit version tag recommended
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 27017
+              name: mongo
+
+          # -----------------------------
+          # Credentials from Secret
+          # -----------------------------
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret           # Same Secret used by mongo-express
+                  key: mongo-root-username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secret
+                  key: mongo-root-password
+
+          # -----------------------------
+          # Basic health checks (optional but recommended)
+          # -----------------------------
+          readinessProbe:
+            exec:
+              command: ["mongosh", "--eval", "db.adminCommand('ping')"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command: ["mongosh", "--eval", "db.adminCommand('ping')"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+
+          # -----------------------------
+          # Ephemeral storage (for labs)
+          # Replace with PVC for persistence
+          # -----------------------------
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+
+      volumes:
+        - name: mongo-data
+          emptyDir: {}             # Non-persistent; use PVC for real persistence
+
+  # ---------------------------------------------------
+  # To PERSIST data, replace the "volumes/emptyDir"
+  # above with this PVC template (uncomment and adjust):
+  #
+  # volumeClaimTemplates:
+  #   - metadata:
+  #       name: mongo-data
+  #     spec:
+  #       accessModes: ["ReadWriteOnce"]
+  #       resources:
+  #         requests:
+  #           storage: 5Gi
+  #       storageClassName: <your-storage-class>
+  # ---------------------------------------------------
