@@ -15,72 +15,38 @@ spec:
         app: mongo-express
     spec:
       containers:
-        - name: mongo-express
-          image: mongo-express:1.0.2
-          imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8081
-          env:
-            # Basic auth for the UI (optional, but good to have)
-            - name: ME_CONFIG_BASICAUTH_USERNAME
-              value: "admin"
-            - name: ME_CONFIG_BASICAUTH_PASSWORD
-              value: "password"
-
-            # Connect to Mongo via separate vars (no URL string needed)
-            - name: ME_CONFIG_MONGODB_ENABLE_ADMIN
-              value: "true"
-            - name: ME_CONFIG_MONGODB_ADMINUSERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: mongodb-secret
-                  key: mongo-root-username
-            - name: ME_CONFIG_MONGODB_ADMINPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mongodb-secret
-                  key: mongo-root-password
-            - name: ME_CONFIG_MONGODB_SERVER
-              value: "mongodb-service"   # must match your Service name
-            - name: ME_CONFIG_SITE_BASEURL
-              value: "/"
-
-          # Probes to prevent rollout flapping while connecting
-          startupProbe:
-            httpGet:
-              path: /
-              port: 8081
-            failureThreshold: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 8081
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            failureThreshold: 6
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 8081
-            initialDelaySeconds: 30
-            periodSeconds: 20
-            failureThreshold: 3
+      - name: mongo-express
+        image: mongo-express
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+        - name: ME_CONFIG_MONGODB_SERVER
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: database_url
+      imagePullSecrets:
+      - name: docker-creds  # Add this to your kubernetes cluster
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: mongo-express-service
-  labels:
-    app: mongo-express
 spec:
-  type: LoadBalancer
-  loadBalancerIP: "10.48.229.45"   # keep quoted to force string
+  type: 
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8081
   selector:
     app: mongo-express
-  ports:
-    - name: http
-      port: 8081
-      targetPort: 8081
-      protocol: TCP
-  externalTrafficPolicy: Cluster
