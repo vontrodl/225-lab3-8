@@ -86,7 +86,7 @@ kind: Service
 metadata:
   name: mongo-express-service    # Name of the Service
 spec:
-  type: LoadBalancer             # Expose externally (can also be NodePort or ClusterIP)
+  type: LoadBalancer             # Change this to match your Load Balancer IP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   loadBalancerIP: 10.48.229.45
   ports:
   - protocol: TCP                # Communication protocol
